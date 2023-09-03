@@ -20,7 +20,7 @@ class CSVLineParser {
     };
 
 public:
-    CSVLineParser( int columns, char escape_char = '\\', char delimiter_char = ',', char quote_char = '"') :  
+    CSVLineParser( int columns, char escape_char = '"', char delimiter_char = ',', char quote_char = '"') :  
                columns(columns), escape_char(escape_char), delimiter_char(delimiter_char), quote_char(quote_char) {}
 
 
@@ -53,7 +53,7 @@ public:
                         state = start_field;
                     }
                     else if(line.at(i) == quote_char) {
-                        throw std::out_of_range("Quote in unquoted field: "+line);
+                        throw std::out_of_range("Quote in unquoted cell: "+line);
                     }
                     else {
                            field.push_back(line.at(i));
@@ -66,14 +66,14 @@ public:
                        (i+1 < line.length()) && 
                        (line.at(i+1) == quote_char)) {
                             i++;
-                            // add de-escaped quote
+                            // add de-escaped quote char
                             field.push_back(line.at(i));
                     }
                     else if(line.at(i) == quote_char) {
                         // see if closing quote or out of context
                         if((i+1 < line.length()) &&           // if not eol 
                            (line.at(i+1) != delimiter_char)){ // and no delimiter follows
-                            throw std::out_of_range("Unescaped quote in quoted field: "+line);
+                            throw std::out_of_range("Unescaped quote in quoted cell: "+line);
                         } else {
                             // closing quote of quoted field
                             state = start_field;
@@ -88,14 +88,16 @@ public:
             }
         }
         if( state == quoted) { // eol before closing quote found
-                throw std::out_of_range("Unterminated quoted field in line: "+line);
+                throw std::out_of_range("Unterminated quoted cell in line: "+line);
         }
-        // add last field to list
+        // add last field to list. 
+        // Note: a blank line is defined as a single empty cell
         fields.push_back(field);
-        colcount++;       
-      // Pad with empty columns to expected count
-        if( colcount != columns) {
-            throw std::out_of_range("Missing or extra fields: "+line);       
+        colcount++;  
+
+        // If specific column count specified, check how many we have
+        if( columns != 0 && colcount != columns) {
+            throw std::out_of_range("Missing or extra cells: "+line);       
         }
         return fields;
     }
